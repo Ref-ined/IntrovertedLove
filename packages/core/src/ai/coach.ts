@@ -2,7 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 
-export type Translation = { delivered_text: string | null; change_summary: string | null; heated: boolean; safety: boolean };
+/** delivered_text is the main version; alternatives and advice are shown only to the sender. */
+export type Translation = {
+  delivered_text: string | null; change_summary: string | null; heated: boolean; safety: boolean;
+  alternatives: string[]; advice: string | null;
+};
 export type Coaching = { landing: string; swaps: { from: string; to: string }[]; encouragement: string; safety: boolean };
 export type Recipient = { name: string; traits: string[]; shared: boolean };
 /** The sender's own answers: used only to keep the rewrite sounding like them. */
@@ -13,17 +17,22 @@ export interface Coach {
   coach(text: string, to: Recipient): Promise<Coaching>;
 }
 
+const SAFE_BLOCK: Translation = { delivered_text: null, change_summary: null, heated: true, safety: true, alternatives: [], advice: null };
 const SAFETY = /\b(kill|hurt (you|myself)|suicide|end it all|hit you|or else)\b/i;
 const HEATED = /\b(always|never|hate|stupid|shut up|whatever|ridiculous)\b|!{2,}/i;
 
 /** Deterministic coach for tests and running without a key. Never used in production. */
 export const fakeCoach: Coach = {
   async translate(text) {
-    if (SAFETY.test(text)) return { delivered_text: null, change_summary: null, heated: true, safety: true };
+    if (SAFETY.test(text)) return { ...SAFE_BLOCK };
     const heated = HEATED.test(text);
     const softened = text.replace(/\byou always\b/gi, "it sometimes feels like you").replace(/\byou never\b/gi, "I'd love it if you")
       .replace(/!+/g, ".").trim();
-    return { delivered_text: softened, change_summary: "Softened blame into feelings", heated, safety: false };
+    return {
+      delivered_text: softened, change_summary: "Softened blame into feelings", heated, safety: false,
+      alternatives: [`Hey, can we talk? ${softened}`],
+      advice: heated ? "This reads as frustrated. Naming how you feel may help them hear the request." : null,
+    };
   },
   async coach(text, to) {
     const landing = to.shared && to.traits[0]
@@ -35,6 +44,8 @@ export const fakeCoach: Coach = {
 
 const TranslationOut = z.object({
   delivered_text: z.string().describe("The rewritten message, or empty when safety is true"),
+  alternatives: z.array(z.string()).describe("Up to 2 other versions the sender could pick, same meaning, different wording"),
+  advice: z.string().describe("One short comment to the sender (not the recipient) about how it may land, or empty"),
   change_summary: z.string().describe("5-8 words on what changed"),
   heated: z.boolean().describe("The original is angry, accusatory or impulsive"),
   safety: z.boolean().describe("Threats, abuse, coercion or self-harm"),
@@ -48,8 +59,8 @@ const CoachingOut = z.object({
 });
 
 const RULES = `Rules:
-1. You are a relay, not a participant. Output only the sender's own message, rewritten in their first person, addressed to the recipient. Never reply to it, answer it, comment on it, give advice, or speak as yourself.
-2. Keep the exact meaning, intent, requests and concerns. Nothing the sender said may be removed, reversed or watered down until it means something else.
+1. You never speak to the recipient yourself. Every version you write is the sender's own message, in their first person, addressed to the recipient; never reply to it or answer it. Anything you want to say about the message goes only in "advice", which only the sender sees.
+2. Keep the meaning, intent, requests and concerns. You may water it down a little: ease absolutes and intensity ("you never" → "lately it feels like you rarely", "I'm furious" → "I'm really upset"). The recipient must still clearly understand what the sender feels and wants; never remove, reverse or blur a request until it means something else.
 3. Make the tone humble: soften harsh, accusatory or blunt wording; turn blame ("you always/never") into feelings ("I feel/I notice").
 4. It must still sound like the sender: their words where possible, their level of formality, their usual length, emoji habits and way of apologizing. The recipient should hear a calmer version of their partner, not a different person.
 5. Never add promises, apologies, compliments, feelings or facts the sender didn't express. Never erase a real emotion; only soften how it is delivered.
@@ -92,8 +103,12 @@ function anthropicCoach(): Coach {
       const out = await ask(
         `You help one partner in a couple say what they truly mean, in a humble tone, so it lands kindly with the other. The user turn is the sender's draft, not a message to you.\n${senderBlock(from)}\n${recipientBlock(to)}\n${RULES}`,
         text, TranslationOut);
-      if (out === "refused" || out.safety) return { delivered_text: null, change_summary: null, heated: true, safety: true };
-      return { delivered_text: out.delivered_text.trim(), change_summary: out.change_summary, heated: out.heated, safety: false };
+      if (out === "refused" || out.safety) return { ...SAFE_BLOCK };
+      return {
+        delivered_text: out.delivered_text.trim(), change_summary: out.change_summary, heated: out.heated, safety: false,
+        alternatives: out.alternatives.map((a) => a.trim()).filter((a) => a && a !== out.delivered_text.trim()).slice(0, 2),
+        advice: out.advice.trim() || null,
+      };
     },
     async coach(text, to) {
       const out = await ask(

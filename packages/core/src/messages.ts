@@ -77,8 +77,17 @@ export async function preview(db: DB, userId: string, rawText: string) {
     await logEvent(db, userId, "translation_failed", { reason }, coupleId);
     throw new ApiError(503, "translate_failed", "The translation service didn't answer in time. Nothing was charged or stored.", { retryable: true });
   }
-  const claims = { user_id: userId, text_hash: hashText(text), ...t };
-  return { ...t, preview_token: mintToken(claims) };
+  // One signed token per version, so the sender can send or share whichever they pick.
+  const sign = (delivered: string | null) => mintToken({
+    user_id: userId, text_hash: hashText(text), delivered_text: delivered,
+    change_summary: t.change_summary, heated: t.heated, safety: t.safety,
+  });
+  return {
+    delivered_text: t.delivered_text, change_summary: t.change_summary, heated: t.heated, safety: t.safety,
+    advice: t.advice,
+    preview_token: sign(t.delivered_text),
+    alternatives: t.safety ? [] : t.alternatives.map((text) => ({ text, preview_token: sign(text) })),
+  };
 }
 
 type Row = typeof messages.$inferSelect;

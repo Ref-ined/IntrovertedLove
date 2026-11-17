@@ -19,7 +19,7 @@ Local examples use dev login: `curl -c jar "localhost:3000/dev/login?as=alice"`,
 | `DELETE /pair` | | `{ok}` |
 | `GET /couples` | | `{couples: [{id, partner_name, active, ended_at}]}` |
 | `GET /messages?couple_id=&cursor=` | | `{messages, pending, server_now, next_cursor}` |
-| `POST /messages/preview` | `{text}` | `{delivered_text, change_summary, heated, safety, preview_token}` |
+| `POST /messages/preview` | `{text}` | `{delivered_text, change_summary, heated, safety, preview_token, alternatives: [{text, preview_token}], advice}`. `advice` is for the sender only; send or share any version with its own token. |
 | `POST /messages` | `{text, mode: "translated"\|"as_written", preview_token?}` | message |
 | `DELETE /messages/:id` | | undo inside the window: `{text, mode, refunded}` |
 | `POST /messages/:id/share` | `{shared}` | share your original with your partner |

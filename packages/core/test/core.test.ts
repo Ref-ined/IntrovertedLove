@@ -215,6 +215,21 @@ describe("originals, sharing out and coaching", () => {
   });
 });
 
+describe("versions and advice", () => {
+  it("the sender gets alternatives they can send, and advice that never reaches the recipient", async () => {
+    await couple(db);
+    const p = await preview(db, "alice", "You never call me!!");
+    expect(p.advice).toBeTruthy();
+    expect(p.alternatives.length).toBeGreaterThan(0);
+    const alt = p.alternatives[0];
+    const m = await send(db, "alice", { text: "You never call me!!", mode: "translated", preview_token: alt.preview_token });
+    expect(m.text).toBe(alt.text);
+    await makeVisible(db);
+    const seen = JSON.stringify((await list(db, "bob", {})).messages);
+    expect(seen).not.toContain(p.advice!);
+  });
+});
+
 describe("whose answers shape a message", () => {
   it("Alice → Bob uses Bob's answers as the recipient and Alice's as her own voice, and vice versa", async () => {
     await couple(db);

@@ -12,7 +12,10 @@ type Msg = {
   original_shared: boolean; original_text: string | null; visible_at: string;
 };
 type Me = { id: string; paid: boolean; free_translations_left: number | null; free_shares_left: number | null; couple: { partner: { name: string } | null } | null; birthdate_set: boolean; questionnaire_done: boolean };
-type Preview = { delivered_text: string | null; change_summary: string | null; heated: boolean; safety: boolean; preview_token: string };
+type Preview = {
+  delivered_text: string | null; change_summary: string | null; heated: boolean; safety: boolean; preview_token: string;
+  advice?: string | null; alternatives?: { text: string; preview_token: string }[];
+};
 type Coaching = { landing: string; swaps: { from: string; to: string }[]; encouragement: string; safety: boolean };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -29,6 +32,7 @@ export default function Chat() {
   const [text, setText] = useState("");
   const [prev, setPrev] = useState<(Preview & { for: string }) | null>(null);
   const [breathDone, setBreathDone] = useState(false);
+  const [pick, setPick] = useState(0); // 0 = main version, 1+ = alternatives
   const [coachOut, setCoachOut] = useState<Coaching | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -85,7 +89,7 @@ export default function Chat() {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const p = await api<Preview>("/messages/preview", { body: { text } });
-        setPrev({ ...p, for: text });
+        setPrev({ ...p, for: text }); setPick(0);
         break;
       } catch (e) {
         const p = (e as ApiFail).p;
@@ -105,14 +109,16 @@ export default function Chat() {
     setBusy(false);
   };
 
-  const clear = () => { setText(""); setPrev(null); setCoachOut(null); setBreathDone(false); };
+  const clear = () => { setText(""); setPrev(null); setCoachOut(null); setBreathDone(false); setPick(0); };
+  const versions = prev ? [{ text: prev.delivered_text ?? "", preview_token: prev.preview_token }, ...(prev.alternatives ?? [])] : [];
+  const chosen = versions[pick] ?? versions[0];
 
   const doSend = async (mode: "translated" | "as_written") => {
     setBusy(true);
     try {
-      await api("/messages", { body: { text, mode, preview_token: mode === "translated" ? prev?.preview_token : undefined } });
+      await api("/messages", { body: { text, mode, preview_token: mode === "translated" ? chosen?.preview_token : undefined } });
       if (prev?.heated) api("/events", { body: { name: "breath_step", props: { choice: "send" } } }).catch(() => {});
-      sessionStorage.setItem(`il:lastToken`, prev?.preview_token ?? "");
+      sessionStorage.setItem(`il:lastToken`, chosen?.preview_token ?? "");
       clear(); await poll(); loadMe();
     } catch (e) { fail(e); }
     setBusy(false);
@@ -122,7 +128,7 @@ export default function Chat() {
     if (!prev) return;
     setBusy(true);
     try {
-      const { share_text } = await api<{ share_text: string }>("/messages/share-out", { body: { text: prev.for, preview_token: prev.preview_token } });
+      const { share_text } = await api<{ share_text: string }>("/messages/share-out", { body: { text: prev.for, preview_token: chosen.preview_token } });
       if (navigator.share) await navigator.share({ text: share_text }).catch(() => {});
       else { await navigator.clipboard.writeText(share_text); toast.success("Copied. Paste it wherever you like."); }
       loadMe();
@@ -233,8 +239,18 @@ export default function Chat() {
             ) : (
               <>
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">This will be delivered as</p>
-                <p className="whitespace-pre-wrap leading-relaxed">{prev.delivered_text}</p>
+                {versions.length > 1 ? (
+                  <div className="space-y-2" role="radiogroup" aria-label="Pick a version">
+                    {versions.map((v, i) => (
+                      <button key={i} type="button" role="radio" aria-checked={pick === i} onClick={() => setPick(i)}
+                        className={`block w-full whitespace-pre-wrap rounded-2xl border px-4 py-3 text-left leading-relaxed transition ${pick === i ? "border-primary bg-primary-50" : "border-line bg-white hover:bg-stone-50"}`}>
+                        {v.text}
+                      </button>
+                    ))}
+                  </div>
+                ) : <p className="whitespace-pre-wrap leading-relaxed">{prev.delivered_text}</p>}
                 {prev.change_summary && <p className="text-xs text-muted">{prev.change_summary}</p>}
+                {prev.advice && <p className="rounded-2xl bg-stone-50 px-3 py-2 text-sm text-muted"><b>Just for you:</b> {prev.advice}</p>}
               </>
             )}
             <div className="flex flex-wrap gap-2">
