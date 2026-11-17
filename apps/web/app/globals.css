@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #8b5cf6;
+  --color-primary-50: #f5f3ff;
+  --color-primary-100: #ede9fe;
+  --color-primary-200: #ddd6fe;
+  --color-primary-600: #7c3aed;
+  --color-primary-700: #6d28d9;
+  --color-bg: #fafaf9;
+  --color-ink: #1c1917;
+  --color-muted: #78716c;
+  --color-line: #e7e5e4;
+  --font-display: var(--font-fraunces), serif;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+}
+
+body { background: var(--color-bg); color: var(--color-ink); font-family: var(--font-sans); }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
+
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:opacity-50; }
+@utility btn-primary { @apply btn bg-primary text-white hover:bg-primary-600; }
+@utility btn-ghost { @apply btn border border-line bg-white hover:bg-primary-50; }
+@utility card { @apply rounded-3xl border border-line bg-white p-6 shadow-[0_8px_30px_rgba(28,25,23,0.04)]; }
+@utility input { @apply w-full rounded-2xl border border-line bg-white px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary-100; }

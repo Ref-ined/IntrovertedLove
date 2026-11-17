@@ -1,0 +1,415 @@
+[
+ {
+  "id": "q1",
+  "text": "When something is bothering you, how do you typically express it?",
+  "options": [
+   {
+    "value": "direct",
+    "label": "I say it directly and clearly"
+   },
+   {
+    "value": "indirect",
+    "label": "I hint at it and hope they pick up on it"
+   },
+   {
+    "value": "quiet",
+    "label": "I stay quiet and wait for the right moment"
+   },
+   {
+    "value": "written",
+    "label": "I prefer to write or text about it"
+   }
+  ]
+ },
+ {
+  "id": "q2",
+  "text": "When your partner does something that upsets you, your first instinct is to...",
+  "options": [
+   {
+    "value": "immediate",
+    "label": "Address it immediately — I need to resolve it now"
+   },
+   {
+    "value": "delay",
+    "label": "Wait until I've calmed down, then talk"
+   },
+   {
+    "value": "avoidant",
+    "label": "Let it pass and avoid conflict if possible"
+   },
+   {
+    "value": "overthink",
+    "label": "Replay it in my head trying to understand it"
+   }
+  ]
+ },
+ {
+  "id": "q3",
+  "text": "How do you prefer to receive feedback or difficult truths?",
+  "options": [
+   {
+    "value": "direct",
+    "label": "Directly and honestly, even if it's hard to hear"
+   },
+   {
+    "value": "gentle",
+    "label": "Gently, with encouragement and care"
+   },
+   {
+    "value": "examples",
+    "label": "Through specific examples, not generalizations"
+   },
+   {
+    "value": "process_first",
+    "label": "Give me time to process — I need space first"
+   }
+  ]
+ },
+ {
+  "id": "q4",
+  "text": "Your emoji usage in messages is...",
+  "options": [
+   {
+    "value": "none",
+    "label": "Minimal — I prefer clear words over symbols"
+   },
+   {
+    "value": "sometimes",
+    "label": "Occasional — only when the mood calls for it"
+   },
+   {
+    "value": "often",
+    "label": "Frequent — emojis add warmth to messages"
+   },
+   {
+    "value": "always",
+    "label": "Everywhere — I can barely send a message without them"
+   }
+  ]
+ },
+ {
+  "id": "q5",
+  "text": "How sensitive are you to the tone of messages you receive?",
+  "options": [
+   {
+    "value": "high",
+    "label": "Very — the way something is said matters deeply to me"
+   },
+   {
+    "value": "medium",
+    "label": "Somewhat — I notice tone but try not to let it drive me"
+   },
+   {
+    "value": "low",
+    "label": "Not particularly — I focus on the content"
+   },
+   {
+    "value": "minimal",
+    "label": "Very little — tone rarely affects my interpretation"
+   }
+  ]
+ },
+ {
+  "id": "q6",
+  "text": "How much verbal or written reassurance do you need from your partner?",
+  "options": [
+   {
+    "value": "high",
+    "label": "A lot — regular affirmations mean everything to me"
+   },
+   {
+    "value": "medium",
+    "label": "A moderate amount — meaningful moments of connection"
+   },
+   {
+    "value": "low",
+    "label": "A little — mainly when I'm going through something hard"
+   },
+   {
+    "value": "minimal",
+    "label": "Minimal — I feel secure without constant reassurance"
+   }
+  ]
+ },
+ {
+  "id": "q7",
+  "text": "My primary love language is...",
+  "options": [
+   {
+    "value": "words",
+    "label": "Words of Affirmation (praise, appreciation, verbal love)"
+   },
+   {
+    "value": "acts",
+    "label": "Acts of Service (doing things for me)"
+   },
+   {
+    "value": "time",
+    "label": "Quality Time (undivided attention)"
+   },
+   {
+    "value": "touch",
+    "label": "Physical Touch (hugs, closeness)"
+   },
+   {
+    "value": "gifts",
+    "label": "Receiving Gifts (thoughtful tokens)"
+   }
+  ]
+ },
+ {
+  "id": "q8",
+  "text": "When it comes to message length, I prefer...",
+  "options": [
+   {
+    "value": "brief",
+    "label": "Short and direct — get to the point"
+   },
+   {
+    "value": "detailed",
+    "label": "Detailed and expressive — tell me everything"
+   },
+   {
+    "value": "mixed",
+    "label": "A mix — depends on what we're talking about"
+   },
+   {
+    "value": "context_dependent",
+    "label": "Context-dependent — serious topics need more words"
+   }
+  ]
+ },
+ {
+  "id": "q9",
+  "text": "Which topics feel most sensitive or loaded for you in your relationship?",
+  "multiple": true,
+  "options": [
+   {
+    "value": "trust",
+    "label": "Trust and jealousy"
+   },
+   {
+    "value": "past",
+    "label": "Past mistakes or history"
+   },
+   {
+    "value": "family",
+    "label": "Family and in-laws"
+   },
+   {
+    "value": "career",
+    "label": "Career, ambition, and future plans"
+   },
+   {
+    "value": "space",
+    "label": "Personal space and independence"
+   },
+   {
+    "value": "finances",
+    "label": "Financial matters"
+   },
+   {
+    "value": "social",
+    "label": "Social life and friendships"
+   }
+  ]
+ },
+ {
+  "id": "q10",
+  "text": "When you feel hurt by your partner, you tend to...",
+  "options": [
+   {
+    "value": "express",
+    "label": "Express it directly — you'll know right away"
+   },
+   {
+    "value": "withdraw",
+    "label": "Withdraw and need space to process alone"
+   },
+   {
+    "value": "distract",
+    "label": "Distract myself with other things until it fades"
+   },
+   {
+    "value": "seek_comfort",
+    "label": "Reach out and ask for comfort and closeness"
+   }
+  ]
+ },
+ {
+  "id": "q11",
+  "text": "How do you typically apologize when you've hurt someone?",
+  "options": [
+   {
+    "value": "verbal",
+    "label": "I say it directly — 'I'm sorry, I was wrong'"
+   },
+   {
+    "value": "actions",
+    "label": "I show it through actions more than words"
+   },
+   {
+    "value": "written",
+    "label": "I write it out — texts or notes feel more honest"
+   },
+   {
+    "value": "time",
+    "label": "I need time before I can apologize genuinely"
+   }
+  ]
+ },
+ {
+  "id": "q12",
+  "text": "How comfortable are you with silence in your relationship?",
+  "options": [
+   {
+    "value": "comfortable",
+    "label": "Very — silence can feel peaceful and connected"
+   },
+   {
+    "value": "neutral",
+    "label": "Okay with it — I don't read too much into it"
+   },
+   {
+    "value": "uneasy",
+    "label": "A little uneasy — silence can feel like distance"
+   },
+   {
+    "value": "anxious",
+    "label": "Anxious — silence often signals something is wrong to me"
+   }
+  ]
+ },
+ {
+  "id": "q13",
+  "text": "When conflict goes unresolved at the end of the day, you...",
+  "options": [
+   {
+    "value": "need_resolve",
+    "label": "Can't rest until it's resolved — I need closure"
+   },
+   {
+    "value": "sleep_on_it",
+    "label": "Sleep on it — things often look clearer in the morning"
+   },
+   {
+    "value": "brief_check",
+    "label": "Need a quick 'we're okay' before sleeping"
+   },
+   {
+    "value": "separate",
+    "label": "Prefer sleeping separately until it's sorted"
+   }
+  ]
+ },
+ {
+  "id": "q14",
+  "text": "How often do you like to check in with your partner during the day?",
+  "options": [
+   {
+    "value": "frequent",
+    "label": "Frequently — regular texts or calls make me feel connected"
+   },
+   {
+    "value": "morning_evening",
+    "label": "Morning and evening — bookending the day feels right"
+   },
+   {
+    "value": "when_needed",
+    "label": "When something significant happens or I miss them"
+   },
+   {
+    "value": "minimal",
+    "label": "Rarely — I'm independent and trust the connection"
+   }
+  ]
+ },
+ {
+  "id": "q15",
+  "text": "How do you use humor when tension rises in your relationship?",
+  "options": [
+   {
+    "value": "diffuse",
+    "label": "I use it to diffuse tension — a laugh can break the ice"
+   },
+   {
+    "value": "careful",
+    "label": "Carefully — humor has to feel right in the moment"
+   },
+   {
+    "value": "rarely",
+    "label": "Rarely — I prefer to stay serious when things are tense"
+   },
+   {
+    "value": "deflect",
+    "label": "I sometimes use it to deflect when I'm uncomfortable"
+   }
+  ]
+ },
+ {
+  "id": "q16",
+  "text": "How do you naturally express affection through text messages?",
+  "options": [
+   {
+    "value": "explicit",
+    "label": "Explicitly — I say 'I love you' and express feelings openly"
+   },
+   {
+    "value": "playful",
+    "label": "Playfully — teasing, inside jokes, lighthearted messages"
+   },
+   {
+    "value": "practical",
+    "label": "Practically — I show care by asking about their day, needs"
+   },
+   {
+    "value": "subtle",
+    "label": "Subtly — small thoughtful check-ins without big declarations"
+   }
+  ]
+ },
+ {
+  "id": "q17",
+  "text": "When you need personal space, you usually...",
+  "options": [
+   {
+    "value": "tell_them",
+    "label": "Tell my partner directly — 'I need some time alone'"
+   },
+   {
+    "value": "hint",
+    "label": "Drop hints and hope they understand"
+   },
+   {
+    "value": "go_quiet",
+    "label": "Go quiet without explaining — I just need space"
+   },
+   {
+    "value": "plan_it",
+    "label": "Plan it in advance so they don't feel rejected"
+   }
+  ]
+ },
+ {
+  "id": "q18",
+  "text": "What does support look like to you when you're going through something hard?",
+  "options": [
+   {
+    "value": "listen",
+    "label": "Just listen — I don't need solutions, I need to be heard"
+   },
+   {
+    "value": "advice",
+    "label": "Offer advice and help me think through it"
+   },
+   {
+    "value": "presence",
+    "label": "Just be present — sitting together in silence is enough"
+   },
+   {
+    "value": "distract",
+    "label": "Distract me — take my mind off it with something fun"
+   }
+  ]
+ }
+]
