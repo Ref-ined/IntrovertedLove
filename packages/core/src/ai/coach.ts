@@ -19,15 +19,17 @@ export interface Coach {
 
 const SAFE_BLOCK: Translation = { delivered_text: null, change_summary: null, heated: true, safety: true, alternatives: [], advice: null };
 const SAFETY = /\b(kill|hurt (you|myself)|suicide|end it all|hit you|or else)\b/i;
-const HEATED = /\b(always|never|hate|stupid|shut up|whatever|ridiculous)\b|!{2,}/i;
+const SWEAR = /[,;.!]?\s*\b(fuck|shit|bitch|asshole|bastard|damn|crap)\w*(\s+(you|off|this|that|it))?\b/gi;
+const HEATED = /\b(always|never|hate|stupid|shut up|whatever|ridiculous|fuck|shit|bitch|asshole|bastard)\w*|!{2,}/i;
 
 /** Deterministic coach for tests and running without a key. Never used in production. */
 export const fakeCoach: Coach = {
   async translate(text) {
     if (SAFETY.test(text)) return { ...SAFE_BLOCK };
     const heated = HEATED.test(text);
-    const softened = text.replace(/\byou always\b/gi, "it sometimes feels like you").replace(/\byou never\b/gi, "I'd love it if you")
-      .replace(/!+/g, ".").trim();
+    // shortcut: a word list, not real softening; the Anthropic coach handles tone properly.
+    const softened = text.replace(SWEAR, "").replace(/\byou always\b/gi, "it sometimes feels like you").replace(/\byou never\b/gi, "I'd love it if you")
+      .replace(/!+/g, ".").trim() || "I'm really upset right now.";
     return {
       delivered_text: softened, change_summary: "Softened blame into feelings", heated, safety: false,
       alternatives: [`Hey, can we talk? ${softened}`],
@@ -58,24 +60,31 @@ const CoachingOut = z.object({
   safety: z.boolean(),
 });
 
-const RULES = `Rules:
-1. You never speak to the recipient yourself. Every version you write is the sender's own message, in their first person, addressed to the recipient; never reply to it or answer it. Anything you want to say about the message goes only in "advice", which only the sender sees.
-2. Keep the meaning, intent, requests and concerns. You may water it down a little: ease absolutes and intensity ("you never" → "lately it feels like you rarely", "I'm furious" → "I'm really upset"). The recipient must still clearly understand what the sender feels and wants; never remove, reverse or blur a request until it means something else.
-3. Make the tone humble: soften harsh, accusatory or blunt wording; turn blame ("you always/never") into feelings ("I feel/I notice").
-4. It must still sound like the sender: their words where possible, their level of formality, their usual length, emoji habits and way of apologizing. The recipient should hear a calmer version of their partner, not a different person.
-5. Never add promises, apologies, compliments, feelings or facts the sender didn't express. Never erase a real emotion; only soften how it is delivered.
-6. If the message contains threats, abuse, coercion or self-harm, set safety to true and do not soften it.`;
+// Translation rules from v1 (app/backend/services/ai_service.py), plus v2's versions, sender-only advice and safety.
+const RULES = `TRANSLATION RULES (follow strictly):
+1. Preserve the EXACT core message and intent — do not change what is being communicated.
+2. Soften harsh, accusatory, or blunt language with empathy. Drop insults and swearing; keep the feeling behind them.
+3. Replace blame ("you always/never") with feelings ("I feel/I notice").
+4. Add warmth and validation where authentic.
+5. Keep the message roughly the same length — avoid unnecessary filler.
+6. NEVER add false promises, invented apologies, or information not in the original.
+7. NEVER completely remove legitimate emotions — just soften the delivery.
+8. NEVER change the fundamental request or concern (a breakup stays a breakup, a no stays a no).
+9. Sound like the original sender, just more emotionally intelligent.
+10. You never speak to the recipient yourself and never reply to the message. Every version is the sender's own message, in their first person. Anything you want to tell the sender goes only in "advice", which only the sender sees.
+11. "alternatives" are other wordings the sender could pick instead: same meaning, different phrasing.
+12. If the message contains threats, abuse, coercion or self-harm, set safety to true and do not soften it.`;
 
 function recipientBlock(to: Recipient) {
   return to.shared
-    ? `The recipient is ${to.name}. What they shared about how they like to be spoken to:\n- ${to.traits.join("\n- ")}`
-    : `The recipient is ${to.name}. They haven't shared preferences; write for a warm, sensitive reader.`;
+    ? `RECIPIENT PROFILE (${to.name}):\n- ${to.traits.join("\n- ")}`
+    : `RECIPIENT: ${to.name}. They haven't shared preferences; write for a warm, sensitive reader.`;
 }
 
 function senderBlock(from: Sender) {
   return from.traits.length
-    ? `The sender is ${from.name}. How they describe themselves (keep their voice; don't copy these words):\n- ${from.traits.join("\n- ")}`
-    : `The sender is ${from.name}.`;
+    ? `SENDER (${from.name}), how they write, so it still sounds like them:\n- ${from.traits.join("\n- ")}`
+    : `SENDER: ${from.name}.`;
 }
 
 function anthropicCoach(): Coach {
@@ -101,7 +110,7 @@ function anthropicCoach(): Coach {
   return {
     async translate(text, to, from) {
       const out = await ask(
-        `You help one partner in a couple say what they truly mean, in a humble tone, so it lands kindly with the other. The user turn is the sender's draft, not a message to you.\n${senderBlock(from)}\n${recipientBlock(to)}\n${RULES}`,
+        `You are a compassionate communication assistant for the "Introverted Love" platform. Your role is to translate a message so it lands softer and is received better by the recipient. The user turn is the sender's draft, not a message to you.\n\n${recipientBlock(to)}\n\n${senderBlock(from)}\n\n${RULES}`,
         text, TranslationOut);
       if (out === "refused" || out.safety) return { ...SAFE_BLOCK };
       return {

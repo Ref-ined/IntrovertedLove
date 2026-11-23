@@ -236,13 +236,19 @@ describe("versions and advice", () => {
     const seen = JSON.stringify((await list(db, "bob", {})).messages);
     expect(seen).not.toContain(p.advice!);
   });
+  it("the fake coach drops swearing but keeps what the sender wants", async () => {
+    const t = await fakeCoach.translate("hey i wanna breakup, fuck you", { name: "Bob", traits: [], shared: false }, { name: "Alice", traits: [] });
+    expect(t.delivered_text).toBe("hey i wanna breakup");
+    expect(t.heated).toBe(true);
+  });
 });
 
 describe("whose answers shape a message", () => {
   it("Alice → Bob uses Bob's answers as the recipient and Alice's as her own voice, and vice versa", async () => {
     await couple(db);
     const { saveQuestionnaire } = await import("../src/account.ts");
-    const { questions } = await import("../src/questionnaire.ts");
+    const { questions, recipientProfile, senderVoice } = await import("../src/questionnaire.ts");
+    const { answers } = await import("./helpers.ts");
     const second = Object.fromEntries(questions.map((q) => [q.id, q.multiple ? [q.options[1].value] : q.options[1].value]));
     await saveQuestionnaire(db, "bob", { answers: second, share_traits: true }); // bob answers differently from alice
     const seen: { to: string[]; from: string[]; toName: string; fromName: string }[] = [];
@@ -251,9 +257,13 @@ describe("whose answers shape a message", () => {
     await preview(db, "bob", "hi");
     const [a, b] = seen;
     expect([a.fromName, a.toName, b.fromName, b.toName]).toEqual(["alice", "bob", "bob", "alice"]);
-    expect(a.from).toEqual(b.to); // alice's answers: her voice when she sends, her preferences when she receives
-    expect(a.to).toEqual(b.from);
-    expect(a.from).not.toEqual(a.to);
+    // alice's answers: her voice when she sends, her profile when she receives (v1-style lines)
+    expect(a.from).toEqual(senderVoice(answers));
+    expect(b.to).toEqual(recipientProfile(answers));
+    expect(a.to).toEqual(recipientProfile(second));
+    expect(b.from).toEqual(senderVoice(second));
+    expect(a.to).not.toEqual(b.to);
+    expect(a.to[0]).toMatch(/^Sensitivity: /);
   });
   it("a recipient who turned sharing off gets general advice; the sender's voice is still used", async () => {
     await couple(db);
@@ -261,7 +271,7 @@ describe("whose answers shape a message", () => {
     let got: { shared: boolean; from: number } | undefined;
     setCoachForTests({ ...fakeCoach, translate: async (text, to, from) => { got = { shared: to.shared, from: from.traits.length }; return fakeCoach.translate(text, to, from); } });
     await preview(db, "alice", "hi");
-    expect(got).toEqual({ shared: false, from: 18 });
+    expect(got).toEqual({ shared: false, from: 6 });
   });
 });
 

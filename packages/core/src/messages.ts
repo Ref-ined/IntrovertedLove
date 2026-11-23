@@ -9,7 +9,7 @@ import { hasPaidAccess } from "./access.ts";
 import { getCoach, type Recipient } from "./ai/coach.ts";
 import { logEvent } from "./events.ts";
 import { reserveAiCall } from "./limits.ts";
-import { NEUTRAL_TRAITS } from "./questionnaire.ts";
+import { NEUTRAL_TRAITS, recipientProfile, senderVoice } from "./questionnaire.ts";
 import { hashText, mintToken, verifyToken } from "./token.ts";
 import { activeCouple, pgCode, requireReady, type User } from "./users.ts";
 
@@ -24,11 +24,11 @@ export function undoWindowSeconds(): number {
 async function recipientFor(db: DB, userId: string): Promise<{ coupleId: string | null; to: Recipient }> {
   const c = await activeCouple(db, userId);
   if (!c?.partner) return { coupleId: c?.coupleId ?? null, to: { name: "your partner", traits: NEUTRAL_TRAITS, shared: false } };
-  const [p] = await db.select({ share: users.shareTraits, traits: questionnaire.traits }).from(users)
+  const [p] = await db.select({ share: users.shareTraits, answers: questionnaire.answers }).from(users)
     .leftJoin(questionnaire, eq(questionnaire.userId, users.id)).where(eq(users.id, c.partner.id));
   const name = c.partner.name ?? "your partner";
-  const shared = !!p?.share && !!p.traits?.length;
-  return { coupleId: c.coupleId, to: { name, traits: shared ? p!.traits! : NEUTRAL_TRAITS, shared } };
+  const shared = !!p?.share && !!p.answers;
+  return { coupleId: c.coupleId, to: { name, traits: shared ? recipientProfile(p!.answers as Record<string, unknown>) : NEUTRAL_TRAITS, shared } };
 }
 
 /** Free users: reserve one preview, atomically, within the paired/unpaired caps. */
@@ -70,8 +70,8 @@ export async function preview(db: DB, userId: string, rawText: string) {
   let t;
   try {
     // Partner's answers: how it should land. Sender's own answers: so it still sounds like them.
-    const [mine] = await db.select({ traits: questionnaire.traits }).from(questionnaire).where(eq(questionnaire.userId, userId));
-    t = await getCoach().translate(text, to, { name: u.displayName ?? "the sender", traits: mine?.traits ?? [] });
+    const [mine] = await db.select({ answers: questionnaire.answers }).from(questionnaire).where(eq(questionnaire.userId, userId));
+    t = await getCoach().translate(text, to, { name: u.displayName ?? "the sender", traits: mine ? senderVoice(mine.answers as Record<string, unknown>) : [] });
   } catch (e) {
     if (!paid) await releasePreview(db, userId);
     const reason = (e as Error)?.name?.includes("Timeout") ? "timeout" : (e as Error)?.message === "invalid_output" ? "invalid_output" : "api_error";
