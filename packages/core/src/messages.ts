@@ -16,8 +16,9 @@ import { activeCouple, pgCode, requireReady, type User } from "./users.ts";
 export const textSchema = z.string().trim().min(1, "Write something first.").max(4000, "The maximum is 4000 characters.");
 
 export function undoWindowSeconds(): number {
-  const n = Number(process.env.UNDO_WINDOW_SECONDS ?? 10);
-  return Number.isInteger(n) && n >= 2 ? n : 10; // env.ts rejects bad values at startup; this is the safe fallback
+  // 0 = deliver at once (the app has no undo button); env.ts rejects bad values at startup.
+  const n = Number(process.env.UNDO_WINDOW_SECONDS || 0);
+  return Number.isInteger(n) && (n === 0 || n >= 2) ? n : 0;
 }
 
 async function recipientFor(db: DB, userId: string): Promise<{ coupleId: string | null; to: Recipient }> {

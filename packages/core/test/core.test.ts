@@ -11,7 +11,8 @@ let db: DB;
 let close: () => Promise<void>;
 beforeAll(async () => ({ db, close } = await openDb()));
 afterAll(() => close());
-beforeEach(async () => { await reset(db); setCoachForTests(fakeCoach); });
+// The undo tests need a window; the app default is 0 (no undo).
+beforeEach(async () => { await reset(db); setCoachForTests(fakeCoach); process.env.UNDO_WINDOW_SECONDS = "10"; });
 
 const token = (user: string, text: string, over: Partial<{ safety: boolean; delivered_text: string | null }> = {}) =>
   mintToken({ user_id: user, text_hash: hashText(text), delivered_text: "soft " + text, change_summary: "softer", heated: false, safety: false, ...over });
@@ -181,6 +182,13 @@ describe("undo and the cursor", () => {
     delete process.env.UNDO_WINDOW_SECONDS;
     const [m] = await db.select().from(schema.messages);
     expect(m.visibleAt.getTime() - m.createdAt.getTime()).toBeGreaterThan(29_000);
+  });
+  it("delivers at once when no window is set", async () => {
+    await couple(db);
+    delete process.env.UNDO_WINDOW_SECONDS;
+    const m = await send(db, "alice", { text: "now", mode: "as_written" });
+    expect((await list(db, "bob", {})).messages.map((x) => x.id)).toEqual([m.id]);
+    await expectApiError(undo(db, "alice", m.id), 409, "undo_window_closed");
   });
 });
 

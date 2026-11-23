@@ -25,8 +25,6 @@ export default function Chat() {
   const [me, setMe] = useState<Me | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [pending, setPending] = useState<Msg[]>([]);
-  const [skew, setSkew] = useState(0); // server_now - client now, for the undo countdown
-  const [, tick] = useState(0);
   const cursor = useRef<string | null>(null);
 
   const [text, setText] = useState("");
@@ -49,7 +47,6 @@ export default function Chat() {
       const r = await api<{ messages: Msg[]; pending: Msg[]; server_now: string; next_cursor: string | null }>(
         `/messages${cursor.current ? `?cursor=${encodeURIComponent(cursor.current)}` : ""}`);
       cursor.current = r.next_cursor;
-      setSkew(Date.parse(r.server_now) - Date.now());
       setPending(r.pending);
       if (r.messages.length) setMsgs((old) => {
         const seen = new Set(old.map((m) => m.id));
@@ -69,14 +66,13 @@ export default function Chat() {
         await sleep(document.visibilityState === "visible" ? 5000 : 30000);
       }
     })();
-    const t = setInterval(() => tick((n) => n + 1), 500);
-    return () => { stop = true; clearInterval(t); };
+    return () => { stop = true; };
   }, [me?.couple, poll]);
 
   const partner = me?.couple?.partner?.name ?? "your partner";
   const fail = (e: unknown) => {
     const p = (e as ApiFail).p;
-    if (p?.status === 402) setNotice(p.detail);
+    if (p?.status === 402) setNotice(p.detail ?? "You've used your free translations.");
     else toast.error((e as Error).message);
   };
   const upgrade = (feature: string) => {
@@ -103,7 +99,10 @@ export default function Chat() {
   };
 
   const doCoach = async () => {
-    if (!me?.paid) return upgrade("coach");
+    if (!me?.paid) {
+      api("/events", { body: { name: "upgrade_clicked", props: { feature: "coach" } } }).catch(() => {});
+      return void toast("“How will this land?” is part of the paid plan, coming soon.");
+    }
     setBusy(true);
     try { setCoachOut(await api<Coaching>("/coach", { body: { text } })); } catch (e) { fail(e); }
     setBusy(false);
@@ -118,7 +117,6 @@ export default function Chat() {
     try {
       await api("/messages", { body: { text, mode, preview_token: mode === "translated" ? chosen?.preview_token : undefined } });
       if (prev?.heated) api("/events", { body: { name: "breath_step", props: { choice: "send" } } }).catch(() => {});
-      sessionStorage.setItem(`il:lastToken`, chosen?.preview_token ?? "");
       clear(); await poll(); loadMe();
     } catch (e) { fail(e); }
     setBusy(false);
@@ -130,7 +128,7 @@ export default function Chat() {
     try {
       const { share_text } = await api<{ share_text: string }>("/messages/share-out", { body: { text: prev.for, preview_token: chosen.preview_token } });
       if (navigator.share) await navigator.share({ text: share_text }).catch(() => {});
-      else { await navigator.clipboard.writeText(share_text); toast.success("Copied. Paste it wherever you like."); }
+      else { copyText(share_text); toast.success("Copied. Paste it wherever you like."); }
       loadMe();
     } catch (e) {
       const p = (e as ApiFail).p;
@@ -146,16 +144,6 @@ export default function Chat() {
     clear(); toast("Saved on this device for later.");
   };
 
-  const doUndo = async (m: Msg) => {
-    try {
-      const r = await api<{ text: string }>(`/messages/${m.id}`, { method: "DELETE" });
-      setText(r.text); setPending((p) => p.filter((x) => x.id !== m.id));
-      const token = sessionStorage.getItem("il:lastToken");
-      if (m.mode === "translated" && token) setPrev({ delivered_text: m.text, change_summary: m.change_summary, heated: m.heated, safety: false, preview_token: token, for: r.text });
-      loadMe();
-    } catch (e) { fail(e); poll(); }
-  };
-
   const toggleOriginal = async (m: Msg) => {
     try {
       await api(`/messages/${m.id}/share`, { body: { shared: !m.original_shared } });
@@ -164,7 +152,6 @@ export default function Chat() {
   };
 
   const stale = prev && prev.for !== text;
-  const now = Date.now() + skew;
 
   return (
     <main className="mx-auto flex h-screen max-w-2xl flex-col px-4">
@@ -192,25 +179,21 @@ export default function Chat() {
             </div>
           </div>
         ))}
-        {pending.map((m) => {
-          const left = Math.max(0, Math.ceil((Date.parse(m.visible_at) - now) / 1000) - 1);
-          return (
-            <div key={m.id} className="flex justify-end">
-              <div className="max-w-[80%] rounded-3xl bg-primary-100 px-4 py-3">
-                <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
-                <p className="mt-1 text-right text-[11px] text-muted">
-                  Sending · {left > 0 ? <button className="font-semibold text-primary underline" onClick={() => doUndo(m)}>Undo ({left}s)</button> : "…"}
-                </p>
-              </div>
+        {pending.map((m) => (
+          <div key={m.id} className="flex justify-end">
+            <div className="max-w-[80%] rounded-3xl bg-primary-100 px-4 py-3">
+              <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
+              <p className="mt-1 text-right text-[11px] text-muted">Sending…</p>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </section>
 
       <section className="space-y-3 border-t border-line py-4">
         {notice && (
           <div className="rounded-2xl bg-amber-50 p-3 text-sm text-amber-900">
             {notice} <button className="font-semibold underline" onClick={() => upgrade("translation")}>Upgrade</button>
+            {" "}or <button className="font-semibold underline" disabled={busy || !text.trim()} onClick={() => doSend("as_written")}>send it unsoftened</button>
           </div>
         )}
         {coachOut && (
@@ -256,22 +239,21 @@ export default function Chat() {
             <div className="flex flex-wrap gap-2">
               {!prev.safety && (prev.heated ? breathDone : true) && (
                 <>
-                  <button className="btn-primary" disabled={busy} onClick={() => doSend("translated")}>Send</button>
+                  <button className="btn-primary" disabled={busy} onClick={() => doSend("translated")}>Send this</button>
                   <button className="btn-ghost" disabled={busy} onClick={doShareOut}>
                     Share outside the app{me && !me.paid ? ` (${me.free_shares_left} free left)` : ""}
                   </button>
                 </>
               )}
-              <button className="btn-ghost" disabled={busy} onClick={() => doSend("as_written")}>Send as written</button>
+              {prev.safety && <button className="btn-ghost" disabled={busy} onClick={() => doSend("as_written")}>Send as written</button>}
             </div>
           </div>
         )}
         <textarea className="input min-h-24 resize-none" value={text} maxLength={4000} onChange={(e) => setText(e.target.value)}
           placeholder={`Write to ${partner}…`} aria-label="Message" />
         <div className="flex flex-wrap items-center gap-2">
-          <button className="btn-primary" disabled={busy || !text.trim()} onClick={doPreview}>Preview</button>
+          <button className="btn-primary" disabled={busy || !text.trim()} onClick={doPreview}>Send</button>
           <button className="btn-ghost" disabled={busy || !text.trim()} onClick={doCoach}>How will this land?{me?.paid ? "" : " ✦"}</button>
-          <button className="btn-ghost" disabled={busy || !text.trim()} onClick={() => doSend("as_written")}>Send as written</button>
           {me && !me.paid && <span className="ml-auto text-xs text-muted">{me.free_translations_left} free translations left</span>}
         </div>
         {draftList.length > 0 && (
@@ -291,6 +273,13 @@ export default function Chat() {
       </section>
     </main>
   );
+}
+
+/** navigator.clipboard needs HTTPS; this fallback also works over plain http (e.g. a phone on the LAN). */
+function copyText(text: string) {
+  if (window.isSecureContext && navigator.clipboard) return void navigator.clipboard.writeText(text);
+  const t = Object.assign(document.createElement("textarea"), { value: text });
+  document.body.append(t); t.select(); document.execCommand("copy"); t.remove();
 }
 
 function SafetyNote() {

@@ -12,8 +12,8 @@ export function checkEnv(env: NodeJS.ProcessEnv = process.env): string[] {
   if (prod && (!env.CLERK_SECRET_KEY || !env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)) errors.push("Set CLERK_SECRET_KEY and NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.");
   if (prod && !env.DATABASE_URL) errors.push("Set DATABASE_URL to your Postgres pooler URL.");
   const undo = env.UNDO_WINDOW_SECONDS;
-  if (undo !== undefined && undo !== "" && !(Number.isInteger(Number(undo)) && Number(undo) >= 2)) {
-    errors.push("Set UNDO_WINDOW_SECONDS to a whole number of at least 2 (default 10).");
+  if (undo !== undefined && undo !== "" && !(Number.isInteger(Number(undo)) && (Number(undo) === 0 || Number(undo) >= 2))) {
+    errors.push("Set UNDO_WINDOW_SECONDS to 0 (no undo, the default) or a whole number of at least 2.");
   }
   if (env.COACH && !["fake", "anthropic"].includes(env.COACH)) errors.push("Set COACH to fake or anthropic, or leave it empty.");
   return errors;
